@@ -1,69 +1,150 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
 
 export default function Home() {
+  const [mensaje, setMensaje] = useState('');
+  const [conversacion, setConversacion] = useState<{ autor: string; texto: string }[]>([]);
+  const [cargando, setCargando] = useState(false);
+
+  const enviarMensaje = async () => {
+  if (!mensaje.trim()) return;
+
+  const mensajeUsuario = mensaje;
+  const nuevaConversacion = [...conversacion, { autor: 'Tú', texto: mensajeUsuario }];
+  setConversacion(nuevaConversacion);
+  setMensaje('');
+  setCargando(true);
+
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mensaje: mensajeUsuario,
+      negocioId: 1,
+      historial: nuevaConversacion.slice(0, -1), // todo menos el mensaje que acabamos de añadir
+    }),
+  });
+
+  const data = await res.json();
+  setConversacion(prev => [...prev, { autor: 'Chatbot', texto: data.respuesta }]);
+  setCargando(false);
+};
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{
+      minHeight: '100vh',
+      background: '#F7F2EA',
+      fontFamily: 'Georgia, serif',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: 480,
+        background: '#FFFFFF',
+        borderRadius: 20,
+        boxShadow: '0 8px 30px rgba(60, 40, 20, 0.12)',
+        overflow: 'hidden',
+      }}>
+        {/* Cabecera */}
+        <div style={{
+          background: '#5B6E4F',
+          padding: '20px 24px',
+          color: '#FFF',
+        }}>
+          <div style={{ fontSize: 20, fontWeight: 'bold' }}>Restaurante El Prueba</div>
+          <div style={{ fontSize: 13, opacity: 0.85, fontFamily: 'sans-serif' }}>Suele responder al instante</div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Conversación */}
+        <div style={{
+          height: 420,
+          overflowY: 'auto',
+          padding: 20,
+          background: '#FBF8F3',
+          fontFamily: 'sans-serif',
+        }}>
+          {conversacion.length === 0 && (
+            <div style={{ color: '#A0947F', fontSize: 14, textAlign: 'center', marginTop: 40 }}>
+              Escribe un mensaje para empezar la conversación
+            </div>
+          )}
+
+          {conversacion.map((m, i) => {
+            const esUsuario = m.autor === 'Tú';
+            return (
+              <div key={i} style={{
+                display: 'flex',
+                justifyContent: esUsuario ? 'flex-end' : 'flex-start',
+                marginBottom: 12,
+              }}>
+                <div style={{
+                  maxWidth: '75%',
+                  padding: '10px 14px',
+                  borderRadius: 16,
+                  borderBottomRightRadius: esUsuario ? 4 : 16,
+                  borderBottomLeftRadius: esUsuario ? 16 : 4,
+                  background: esUsuario ? '#C8763F' : '#EAE3D6',
+                  color: esUsuario ? '#FFF' : '#3D3427',
+                  fontSize: 14.5,
+                  lineHeight: 1.4,
+                }}>
+                  {m.texto}
+                </div>
+              </div>
+            );
+          })}
+
+          {cargando && (
+            <div style={{ color: '#A0947F', fontSize: 13, fontStyle: 'italic' }}>
+              Escribiendo...
+            </div>
+          )}
         </div>
-      </main>
+
+        {/* Input */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          padding: 16,
+          borderTop: '1px solid #EEE6D8',
+          background: '#FFF',
+          fontFamily: 'sans-serif',
+        }}>
+          <input
+            value={mensaje}
+            onChange={(e) => setMensaje(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && enviarMensaje()}
+            placeholder="Escribe un mensaje..."
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              borderRadius: 12,
+              border: '1px solid #E0D5C0',
+              outline: 'none',
+              fontSize: 14,
+              color: '#3D3427',
+            }}
+          />
+          <button
+            onClick={enviarMensaje}
+            style={{
+              background: '#5B6E4F',
+              color: '#FFF',
+              border: 'none',
+              borderRadius: 12,
+              padding: '0 18px',
+              fontSize: 14,
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
+          >
+            Enviar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
