@@ -67,9 +67,17 @@ export default function Admin() {
         activo: true,
       });
 
-      localStorage.removeItem('pendienteNegocio');
+     localStorage.removeItem('pendienteNegocio');
       negocio = nuevoNegocio;
     }
+
+    if (!negocio) {
+      setMensaje('No se pudo determinar tu negocio');
+      setCargando(false);
+      return;
+    }
+
+    // Comprobar el estado de pago antes de dejar entrar
 
     // Comprobar el estado de pago antes de dejar entrar
     const { data: negocioCompleto } = await supabase
