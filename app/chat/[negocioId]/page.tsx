@@ -38,18 +38,31 @@ export default function ChatNegocio() {
     setMensaje('');
     setCargando(true);
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mensaje: mensajeUsuario,
-        negocioId: negocioId,
-        historial: nuevaConversacion.slice(0, -1),
-      }),
-    });
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensaje: mensajeUsuario,
+          negocioId: negocioId,
+          historial: nuevaConversacion.slice(0, -1),
+        }),
+      });
 
-    const data = await res.json();
-    setConversacion(prev => [...prev, { autor: 'Chatbot', texto: data.respuesta }]);
+      if (!res.ok) throw new Error('Respuesta no válida');
+
+      const data = await res.json();
+
+      if (!data.respuesta) throw new Error('Respuesta vacía');
+
+      setConversacion(prev => [...prev, { autor: 'Chatbot', texto: data.respuesta }]);
+    } catch {
+      setConversacion(prev => [...prev, {
+        autor: 'Chatbot',
+        texto: 'Disculpa, ha habido un problema para procesar tu mensaje. ¿Puedes intentarlo de nuevo?',
+      }]);
+    }
+
     setCargando(false);
   };
 
