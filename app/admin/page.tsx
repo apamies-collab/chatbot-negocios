@@ -67,7 +67,7 @@ export default function Admin() {
         activo: true,
       });
 
-     localStorage.removeItem('pendienteNegocio');
+      localStorage.removeItem('pendienteNegocio');
       negocio = nuevoNegocio;
     }
 
@@ -77,13 +77,13 @@ export default function Admin() {
       return;
     }
 
-    // Comprobar el estado de pago antes de dejar entrar
+    const negocioIdFinal = negocio.id;
 
     // Comprobar el estado de pago antes de dejar entrar
     const { data: negocioCompleto } = await supabase
       .from('negocios')
       .select('estado_pago')
-      .eq('id', negocio.id)
+      .eq('id', negocioIdFinal)
       .single();
 
     if (negocioCompleto?.estado_pago !== 'activo') {
@@ -92,12 +92,12 @@ export default function Admin() {
       return;
     }
 
-    setNegocioId(negocio.id);
+    setNegocioId(negocioIdFinal);
 
     const { data: config } = await supabase
       .from('chatbot_config')
       .select('instrucciones, nombre_bot')
-      .eq('negocio_id', negocio.id)
+      .eq('negocio_id', negocioIdFinal)
       .single();
 
     if (config) {
