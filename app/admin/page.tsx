@@ -25,14 +25,61 @@ export default function Admin() {
       return;
     }
 
-    const { data: negocio, error: errorNegocio } = await supabase
+    let { data: negocio } = await supabase
       .from('negocios')
       .select('id')
       .eq('auth_user_id', session.user.id)
       .single();
 
-    if (errorNegocio || !negocio) {
-      setMensaje('No se encontró ningún negocio asociado a este usuario');
+    // Si no existe aún, lo creamos usando los datos guardados en el registro
+    if (!negocio) {
+      const pendiente = localStorage.getItem('pendienteNegocio');
+      if (!pendiente) {
+        setMensaje('No se encontró ningún negocio asociado a este usuario');
+        setCargando(false);
+        return;
+      }
+
+      const { nombreNegocio, tipoNegocio } = JSON.parse(pendiente);
+
+      const { data: nuevoNegocio, error: errorCrear } = await supabase
+        .from('negocios')
+        .insert({
+          nombre: nombreNegocio,
+          tipo_negocio: tipoNegocio,
+          email: session.user.email,
+          plan: 'basico',
+          auth_user_id: session.user.id,
+        })
+        .select()
+        .single();
+
+      if (errorCrear || !nuevoNegocio) {
+        setMensaje('Error al crear tu negocio: ' + errorCrear?.message);
+        setCargando(false);
+        return;
+      }
+
+      await supabase.from('chatbot_config').insert({
+        negocio_id: nuevoNegocio.id,
+        nombre_bot: `Asistente de ${nombreNegocio}`,
+        instrucciones: `Eres el asistente virtual de ${nombreNegocio}, un negocio de tipo ${tipoNegocio}. Todavía no se han configurado horarios ni detalles específicos: indica amablemente que el negocio los añadirá pronto.`,
+        activo: true,
+      });
+
+      localStorage.removeItem('pendienteNegocio');
+      negocio = nuevoNegocio;
+    }
+
+    // Comprobar el estado de pago antes de dejar entrar
+    const { data: negocioCompleto } = await supabase
+      .from('negocios')
+      .select('estado_pago')
+      .eq('id', negocio.id)
+      .single();
+
+    if (negocioCompleto?.estado_pago !== 'activo') {
+      setMensaje('Tu cuenta está pendiente de activación. Nos pondremos en contacto contigo para completar el pago y activar tu chatbot.');
       setCargando(false);
       return;
     }
